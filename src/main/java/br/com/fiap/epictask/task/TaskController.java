@@ -1,6 +1,7 @@
 package br.com.fiap.epictask.task;
 
 import jakarta.validation.Valid;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -15,9 +16,13 @@ import java.util.UUID;
 
 @Controller
     public class TaskController {
+
         private final TaskService taskService;
-        public TaskController(TaskService taskService) {
+        private final RabbitTemplate rabbitTemplate;
+
+        public TaskController(TaskService taskService, RabbitTemplate rabbitTemplate) {
             this.taskService = taskService;
+            this.rabbitTemplate = rabbitTemplate;
         }
 
     @GetMapping
@@ -37,6 +42,9 @@ import java.util.UUID;
             if (result.hasErrors()) return "form";
             redirect.addFlashAttribute("message", "Tarefa cadastrada com sucesso");
             taskService.create(task);
+
+
+            rabbitTemplate.convertAndSend("email-queue", "Nova tarefa: " + task.title);
             return "redirect:/";
         }
 
